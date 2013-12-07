@@ -157,15 +157,20 @@ class HttpRequest implements Runnable{
 				dos.writeBytes(contentTypeLine);
 				dos.writeBytes(CRLF);
 				
-				String page_html = app.Webserver().Parse_page_to_html(app, wiki_domain, page_name);
-				page_html = page_html.replaceAll(app.Fsys_mgr().Root_dir().To_http_file_str(),"%file%/");
-				page_html = page_html.replaceAll("xowa-cmd", "%xowa-cmd%/xowa-cmd");
-				page_html = page_html.replaceAll("<a href=\"/wiki/","<a href=\"/"+wiki_domain+"/wiki/");
-				page_html = page_html.replaceAll("action=\"/wiki/", "action=\"/"+wiki_domain+"/wiki/");
-				page_html = page_html.replaceAll("/site","");
+				try{
+					String page_html = app.Webserver().Parse_page_to_html(app, wiki_domain, page_name);
+					page_html = page_html.replaceAll(app.Fsys_mgr().Root_dir().To_http_file_str(),"%file%/");
+					page_html = page_html.replaceAll("xowa-cmd", "%xowa-cmd%/xowa-cmd");
+					page_html = page_html.replaceAll("<a href=\"/wiki/","<a href=\"/"+wiki_domain+"/wiki/");
+					page_html = page_html.replaceAll("action=\"/wiki/", "action=\"/"+wiki_domain+"/wiki/");
+					page_html = page_html.replaceAll("/site","");
 
-				dos.write(page_html.getBytes());
-				dos.close();
+					dos.write(page_html.getBytes());
+					dos.close();
+				}catch(Exception err) {
+					dos.writeBytes("Site not found");
+					dos.close();
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
