@@ -1,7 +1,6 @@
 /*
 XOWA: the XOWA Offline Wiki Application
 Copyright (C) 2012 gnosygnu@gmail.com
-Copyright (C) 2013 matthiasjasny@gmail.com (only Webserver)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -16,15 +15,25 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-package gplx.xowa.servers; import gplx.ByteAry_;
-import gplx.String_;
-import gplx.xowa.Xoa_app;
-import gplx.xowa.Xoa_page;
-import gplx.xowa.Xoa_ttl;
-import gplx.xowa.Xoa_url;
-import gplx.xowa.Xoh_wiki_article;
-import gplx.xowa.Xow_wiki;
+/*
+This file is part of XOWA: the XOWA Offline Wiki Application
+Copyright (C) 2013 matthiasjasny@gmail.com
 
+This file is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This file is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+package gplx.xowa.servers; import gplx.*; import gplx.xowa.*;
+import gplx.ios.*; import gplx.json.*;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -41,11 +50,36 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Date;
 import java.util.StringTokenizer;
-public class Xosrv_webserver implements Runnable {
-	public void App_ctor(Xoa_app app) {this.app = app;}
+public class Xosrv_webserver {
+	public Xosrv_webserver(Xoa_app app) {this.app = app;}
 	public Xoa_app App() {return app;} private Xoa_app app;
+	public String Parse_page_to_html(Xoa_app app, String wiki_domain_str, String page_ttl_str) {		
+		byte[] wiki_domain = ByteAry_.new_utf8_(wiki_domain_str);
+		byte[] page_ttl = ByteAry_.new_utf8_(page_ttl_str);
+		Xow_wiki wiki = app.Wiki_mgr().Get_by_key_or_make(wiki_domain);
+		Xoa_url page_url = Xoa_url.new_(wiki_domain, page_ttl);
+		Xoa_ttl ttl = Xoa_ttl.parse_(wiki, page_ttl);
+		Xoa_page page = wiki.GetPageByTtl(page_url, ttl);
+		app.Gui_mgr().Main_win().Page_(page); // HACK: init gui_mgr's page for output (which server ordinarily doesn't need)
+		byte[] output_html = wiki.Html_mgr().Output_mgr().Gen(page, Xoh_wiki_article.Tid_view_read);
+		return String_.new_utf8_(output_html);
+	}
+	public void Run_xowa_cmd(Xoa_app app, String url_encoded_str) {
+		String cmd = app.Url_converter_url().Decode_str(url_encoded_str);
+		app.Gfs_mgr().Run_str(cmd);
+	}
+	public void Run() {
+				HttpServer server = new HttpServer(this);
+		new Thread(server).start();
+				app.Usr_dlg().Note_many("", "", "Webserver started: listening on 8080.");
+	}
+}
+class HttpServer implements Runnable {
+	private Xosrv_webserver webserver;
 	private int webserver_port = 8080;
-
+	public HttpServer(Xosrv_webserver webserver) {
+		this.webserver = webserver;
+	}
 	@SuppressWarnings("resource")
 	public void run() {
 		ServerSocket WebSocket = null;
@@ -58,7 +92,7 @@ public class Xosrv_webserver implements Runnable {
 			try {
 				Socket connectionSocket = WebSocket.accept();
 				//Construct object to process HTTP request message
-				HttpRequest request = new HttpRequest(connectionSocket, app);
+				HttpRequest request = new HttpRequest(connectionSocket, webserver.App());
 				Thread thread = new Thread(request); //Create new thread to process	      
 				thread.start(); //Start the thread	
 			} catch (IOException e) {
@@ -66,23 +100,7 @@ public class Xosrv_webserver implements Runnable {
 			}      
 	     }
 	}
-	public String Parse_page_to_html(Xoa_app app, String wiki_domain_str, String page_ttl_str) {		
-		byte[] wiki_domain = ByteAry_.new_utf8_(wiki_domain_str);
-		byte[] page_ttl = ByteAry_.new_utf8_(page_ttl_str);
-		Xow_wiki wiki = app.Wiki_mgr().Get_by_key_or_make(wiki_domain);
-		Xoa_url page_url = Xoa_url.new_(wiki_domain, page_ttl);
-		Xoa_ttl ttl = Xoa_ttl.parse_(wiki, page_ttl);
-		Xoa_page page = wiki.GetPageByTtl(page_url, ttl);
-		app.Gui_mgr().Main_win().Page_(page); // HACK: init gui_mgr's page for output (which server ordinarily doesn't need)
-		byte[] output_html = wiki.Html_mgr().Output_mgr().Gen(page, Xoh_wiki_article.Tid_view_read);
-	    return String_.new_utf8_(output_html);
-	}
-	public void Run_xowa_cmd(Xoa_app app, String url_encoded_str) {
-		String cmd = app.Url_converter_url().Decode_str(url_encoded_str);
-		app.Gfs_mgr().Run_str(cmd);
-	}
 }
-
 class HttpRequest implements Runnable{
 	final static String CRLF = "\r\n";
 	Socket socket;
