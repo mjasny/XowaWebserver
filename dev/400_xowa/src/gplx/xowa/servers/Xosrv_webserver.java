@@ -69,9 +69,9 @@ public class Xosrv_webserver {
 		app.Gfs_mgr().Run_str(cmd);
 	}
 	public void Run() {
-				HttpServer server = new HttpServer(this);
+		HttpServer server = new HttpServer(this);
 		new Thread(server).start();
-				app.Usr_dlg().Note_many("", "", "Webserver started: listening on 8080.");
+		app.Usr_dlg().Note_many("", "", "Webserver started: listening on 8080.");
 	}
 }
 class HttpServer implements Runnable {
@@ -90,8 +90,7 @@ class HttpServer implements Runnable {
 		}
 		while (true) {// Listen for a TCP connection request.
 			try {
-				Socket connectionSocket = WebSocket.accept();
-				//Construct object to process HTTP request message
+				Socket connectionSocket = WebSocket.accept(); //Construct object to process HTTP request message
 				HttpRequest request = new HttpRequest(connectionSocket, webserver.App());
 				Thread thread = new Thread(request); //Create new thread to process	      
 				thread.start(); //Start the thread	
@@ -140,6 +139,10 @@ class HttpRequest implements Runnable{
 			if(req.contains("%file%")){
 				String path = req.replace("/%file%/", app.Fsys_mgr().Root_dir().To_http_file_str());
 				path = path.substring(path.indexOf(app.Fsys_mgr().Root_dir().To_http_file_str())+5);
+				if(path.contains("?")){
+					path = path.substring(0, path.indexOf("?"));
+					System.out.println("Path has parameter");
+				}
 				FileInputStream fis = new FileInputStream(path);
 				
 				String statusLine = "HTTP/1.1 200 OK: "; //Set initial values to null
