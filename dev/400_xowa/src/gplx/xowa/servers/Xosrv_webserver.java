@@ -71,7 +71,7 @@ public class Xosrv_webserver {
 	public void Run() {
 		HttpServer server = new HttpServer(this);
 		new Thread(server).start();
-		app.Usr_dlg().Note_many("", "", "Webserver started: listening on 8080.");
+		app.Usr_dlg().Note_many("", "", "Webserver started: listening on Port 8080.");
 	}
 }
 class HttpServer implements Runnable {
@@ -120,20 +120,20 @@ class HttpRequest implements Runnable{
 			String page_name = "Main_Page";
 			
 			if(!req.contains("%file%")){
-				//req = req.substring(req.indexOf("home/matthias/xowa_dev")-1);
 				if(req.equals("/")){
-					req+="home/wiki/Main_Page";
+					req+="home/wiki/Main_Page"; //Forward to main page
+					/*Maybe add here a address from a config file, so that a custom main page could be defined*/
 				}
 				if(req.endsWith("wiki/")) req+="Main_Page";
 				if(req.endsWith("wiki")) req+="/Main_Page";
 			}
 			
 			if(req.contains("%xowa-cmd%")){
-				System.out.println("Command!");
+				System.out.println("Command output:");
 				String cmd = req.substring(req.indexOf("%xowa-cmd%")+20);
 				System.out.println(cmd);
 				app.Webserver().Run_xowa_cmd(app, cmd);
-				dos.writeBytes("test");
+				dos.writeBytes("Command sent, see console log for more details.");
 				dos.close();
 			}else
 			if(req.contains("%file%")){
@@ -141,15 +141,12 @@ class HttpRequest implements Runnable{
 				path = path.substring(path.indexOf(app.Fsys_mgr().Root_dir().To_http_file_str())+5);
 				if(path.contains("?")){
 					path = path.substring(0, path.indexOf("?"));
-					System.out.println("Path has parameter");
+					//System.out.println("Path has parameter");
 				}
 				FileInputStream fis = new FileInputStream(path);
-				
-				String statusLine = "HTTP/1.1 200 OK: "; //Set initial values to null
-				String contentTypeLine = "Content-Type: " + contentType(path) + CRLF;;
-
-				dos.writeBytes(statusLine);
-				dos.writeBytes(contentTypeLine);
+			
+				dos.writeBytes("HTTP/1.1 200 OK: ");
+				dos.writeBytes("Content-Type: " + contentType(path) + CRLF);
 				dos.writeBytes(CRLF);
 				
 				sendBytes(fis, dos);
@@ -170,12 +167,8 @@ class HttpRequest implements Runnable{
 					}
 					page_name = app.Url_converter_url().Decode_str(page_name);
 				}
-				//System.out.println("Wiki_Domain: "+wiki_domain+" Page_Name: "+page_name);
-				String statusLine = "HTTP/1.1 200 OK: "; //Set initial values to null
-				String contentTypeLine = "Content-Type: text/html; charset=utf-8" + CRLF;;
-
-				dos.writeBytes(statusLine);
-				dos.writeBytes(contentTypeLine);
+				dos.writeBytes("HTTP/1.1 200 OK: ");
+				dos.writeBytes("Content-Type: text/html; charset=utf-8" + CRLF);
 				dos.writeBytes(CRLF);
 				
 				try{
@@ -189,7 +182,7 @@ class HttpRequest implements Runnable{
 					dos.write(page_html.getBytes());
 					dos.close();
 				}catch(Exception err) {
-					dos.writeBytes("Site not found");
+					dos.writeBytes("Site not found. Check address please, or see console log.");
 					dos.close();
 				}
 			}
