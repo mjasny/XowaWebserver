@@ -65,7 +65,9 @@ public class Xosrv_webserver {
 		return String_.new_utf8_(output_html);
 	}
 	public void Run_xowa_cmd(Xoa_app app, String url_encoded_str) {
-		String cmd = app.Url_converter_url().Decode_str(url_encoded_str);
+		//String cmd = app.Url_converter_url().Decode_str(url_encoded_str);
+		Url_encoder url_converter = Url_encoder.new_http_url_();
+		String cmd = url_converter.Decode_str(url_encoded_str);
 		app.Gfs_mgr().Run_str(cmd);
 	}
 	public void Run() {
@@ -139,12 +141,14 @@ class HttpRequest implements Runnable{
 			if(req.contains("%file%")){
 				String path = req.replace("/%file%/", app.Fsys_mgr().Root_dir().To_http_file_str());
 				path = path.substring(path.indexOf(app.Fsys_mgr().Root_dir().To_http_file_str())+5);
+				Url_encoder url_converter = Url_encoder.new_http_url_();
+				path = url_converter.Decode_str(path);
 				if(path.contains("?")){
 					path = path.substring(0, path.indexOf("?"));
-					//System.out.println("Path has parameter");
 				}
+				
 				FileInputStream fis = new FileInputStream(path);
-			
+				
 				dos.writeBytes("HTTP/1.1 200 OK: ");
 				dos.writeBytes("Content-Type: " + contentType(path) + CRLF);
 				dos.writeBytes(CRLF);
@@ -165,7 +169,10 @@ class HttpRequest implements Runnable{
 					for(int i = 4; i <= req_split.length-1; i++){
 						page_name += "/"+req_split[i];
 					}
-					page_name = app.Url_converter_url().Decode_str(page_name);
+					Url_encoder url_converter = Url_encoder.new_http_url_();
+					page_name = url_converter.Decode_str(page_name);
+					//page_name = app.Url_converter_url().Decode_str(page_name);
+
 				}
 				dos.writeBytes("HTTP/1.1 200 OK: ");
 				dos.writeBytes("Content-Type: text/html; charset=utf-8" + CRLF);
@@ -182,7 +189,7 @@ class HttpRequest implements Runnable{
 					dos.write(page_html.getBytes());
 					dos.close();
 				}catch(Exception err) {
-					dos.writeBytes("Site not found. Check address please, or see console log.");
+					dos.writeBytes("Site not found. Check address please, or see console log.\n"+err.getMessage());
 					dos.close();
 				}
 			}
