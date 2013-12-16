@@ -53,6 +53,7 @@ import java.util.StringTokenizer;
 public class Xosrv_webserver {
 	public Xosrv_webserver(Xoa_app app) {this.app = app;}
 	public Xoa_app App() {return app;} private Xoa_app app;
+	public int Http_server_port() {return http_server_port;} public Xosrv_webserver Http_server_port_(int v) {http_server_port = v; return this;} private int http_server_port = 8080;
 	public String Parse_page_to_html(Xoa_app app, String wiki_domain_str, String page_ttl_str) {		
 		byte[] wiki_domain = ByteAry_.new_utf8_(wiki_domain_str);
 		byte[] page_ttl = ByteAry_.new_utf8_(page_ttl_str);
@@ -71,16 +72,17 @@ public class Xosrv_webserver {
 		app.Gfs_mgr().Run_str(cmd);
 	}
 	public void Run() {
-		HttpServer server = new HttpServer(this);
+				HttpServer server = new HttpServer(this, http_server_port);
 		new Thread(server).start();
-		app.Usr_dlg().Note_many("", "", "Webserver started: listening on Port 8080.");
+				app.Usr_dlg().Note_many("", "", "Webserver started, listening on Port: "+http_server_port);
 	}
 }
 class HttpServer implements Runnable {
 	private Xosrv_webserver webserver;
-	private int webserver_port = 8080;
-	public HttpServer(Xosrv_webserver webserver) {
+	private int webserver_port;
+	public HttpServer(Xosrv_webserver webserver, int webserver_port) {
 		this.webserver = webserver;
+		this.webserver_port = webserver_port;
 	}
 	@SuppressWarnings("resource")
 	public void run() {
